@@ -3,34 +3,31 @@
 import requests
 import json
 import re
-from hashlib import sha1
-import hmac
 import time
 import base64
-from collections import defaultdict
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 import rsa
 import binascii
+import random
 
 # 网站主页：https://login.sina.com.cn/signup/signin.php
 
 
 def get_timestamp():
-	return str(long(time.time()*1000))
+    return long(time.time()*1000)
 def get_su(username):
-	return base64.urlsafe_b64encode(username)
+    return base64.urlsafe_b64encode(username)
 def get_sp(pubkey, servertime, nonce):
-	pubkey = int(pubkey, 16)
-	rsa_pubkey = rsa.PublicKey(pubkey, 65535)
-	msg = str(servertime) + '\t' + nonce + '\n' + password
-	msg = bytes(msg)
-	sp = rsa.encrypt(msg, rsa_pubkey)
-	sp = binascii.b2a_hex(sp)
-	return sp
+    pubkey = int(pubkey, 16)
+    rsa_pubkey = rsa.PublicKey(pubkey, 65537)
+    msg = str(servertime) + '\t' + nonce + '\n' + password
+    msg = bytes(msg)
+    sp = rsa.encrypt(msg, rsa_pubkey)
+    sp = binascii.b2a_hex(sp)
+    return sp
+
 
 s = requests.Session()
 
-s.get('https://login.sina.com.cn/signup/signin.php', headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'})
 username = '123'
 password = '123'
 
@@ -40,7 +37,7 @@ params = {
     "callback": "sinaSSOController.preloginCallBack", 
     "rsakt": "mod", 
     "client": "ssologin.js(v1.4.15)", 
-    "entry": "sso", 
+    "entry": "account", 
     "_": get_timestamp()
 }
 
@@ -56,7 +53,7 @@ data = {
     "nonce": nonce, 
     "domain": "sina.com.cn", 
     "savestate": "30", 
-    "from": None, 
+    "from": 'null', 
     "service": "account", 
     "encoding": "UTF-8", 
     "sr": "1920*1080", 
@@ -64,7 +61,7 @@ data = {
     "servertime": servertime, 
     "su": get_su(username), 
     "rsakv": pre_data['rsakv'], 
-    "returntype": "TEXT", 
+    "returntype": "TEXT",
     "vsnf": "1", 
     "pagerefer": "", 
     "entry": "account", 
@@ -80,12 +77,14 @@ headers = {
     "Host": "login.sina.com.cn", 
     "Accept": "*/*", 
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36", 
-    "Connection": "keep-alive", 
-    "Referer": "https://login.sina.com.cn/signup/signin.php?entry=sso"
+    "Connection": "keep-alive",
+    'Referer': 'https://login.sina.com.cn/signup/signin.php'
 }
 
 url  = 'https://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.15)&_=%s' % get_timestamp()
 resp = s.post(url, headers=headers, data=data)
-resp.encoding='gbk'
-print resp.text
+
+
 print json.dumps(json.loads(resp.text), ensure_ascii=False)
+print '================================================'
+print s.cookies
