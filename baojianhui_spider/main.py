@@ -37,10 +37,8 @@ def main():
                     data['customer_id'] = customer_id
                     mh.save_data(data)
             else:
-                log = '%s : %s error \n' % \
-                    (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), customer_id)
-                with open('main.log', 'a') as f:
-                    f.write(log)
+                log = 'error happen, customer_id is %s' % customer_id
+                logger.warning(log)
             rh.save_to_completed(customer_id)
             time.sleep(2)
     except:
