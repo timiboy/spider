@@ -31,6 +31,7 @@ def random_user_agent():
             'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; '
             '.NET CLR 3.0.04506)'
         ]
+
         return random.choice(agents)
 
 
@@ -39,9 +40,6 @@ PROXIES = {
 	'http':'http://proxyip:1080',
 	
 }
-HEADERS = {
-			'User-Agent':random_user_agent(),
-			}
 
 logger = MyLogger('bjh_spider')
 
@@ -49,11 +47,12 @@ logger = MyLogger('bjh_spider')
 def bjh_spider(name, id_card):
 	try:
 		s = requests.Session()
+		headers = {'User-Agent':random_user_agent()}
 		# url = 'http://iir.circ.gov.cn/web/'
 		# s.get(url, headers=headers)
 
 		captcha_url = 'http://iir.circ.gov.cn/web/servlet/ValidateCode?time=%s' % get_timestamp()
-		resp = s.get(captcha_url, headers=HEADERS, proxies=PROXIES, timeout=6)
+		resp = s.get(captcha_url, headers=headers, proxies=PROXIES, timeout=6)
 		if not resp.content:
 			return None
 		print s.cookies.get_dict()
@@ -78,7 +77,7 @@ def bjh_spider(name, id_card):
 			'name':name.decode('utf-8').encode('gbk'),
 			'valCode':captcha
 		}
-		resp = s.post(profile_url, headers=HEADERS, data=data, proxies=PROXIES, timeout=6)
+		resp = s.post(profile_url, headers=headers, data=data, proxies=PROXIES, timeout=6)
 		return resp.text
 	except:
 		logger.warning(traceback.format_exc())
