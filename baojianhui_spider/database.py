@@ -3,10 +3,14 @@ import pymysql
 import redis
 import pymongo
 import traceback
+import os
+import re
+from datetime import datetime
 from my_logging import MyLogger
 
 # 将数据从mysql中取出
-def get_mysql_data():
+# 将sql语句移到参数方便复用
+def get_mysql_data(sql = 'select id, name, id_card from user_data where state=1 group by id_card'):
 	try:
 		params = {
 					'host':'',
@@ -18,7 +22,6 @@ def get_mysql_data():
 				}
 		conn = pymysql.connect(**params)
 		cur = conn.cursor()
-		sql = 'select id, name, id_card from t_bank_card where state=1 group by id_no'
 		cur.execute(sql)
 		data = cur.fetchall()
 		return data
@@ -40,8 +43,9 @@ class RedisHandler():
 		try:
 			data = map(lambda x:(str(x[0]), x[1], x[2]), data)
 			for each in data:
-				print each[0]
-				self._redis.sadd('PREPARE_QUEUE', '|'.join(each))
+				if not self._redis.sismember('COMPLETED_QUEUE', each[0]):  # 添加只有不在已爬表才加入
+					print each[0]
+					self._redis.sadd('PREPARE_QUEUE', '|'.join(each))
 		except:
 			self.logger.warning(traceback.format_exc())
 
@@ -64,6 +68,26 @@ class RedisHandler():
 	# 检查数据是否在已爬表中
 	def check_completed(self, data):
 		return self._redis.sismember('COMPLETED_QUEUE', data)
+
+	# 补偿函数，请确保在没有main函数运行的情况下才执行
+	def check_log(self, filename='logging/main.log'):
+		try:
+			regex = re.compile(r'customer_id is (\d+) ') # 使用这个正则实际上是针对main.log
+			id_list = []
+			with open(filename, 'r') as f:
+				id_list = regex.findall(f.read())
+			print len(id_list)
+			if id_list:
+				sql = 'select id, name, id_card from user_data where state=1 and id in %s group by id_card' % str(set(id_list))
+				data = get_mysql_data(sql)
+				self.save_to_prepare(data)
+				new_name = filename + '.backup.%s' % datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+				os.rename(filename, new_name)  # 补偿完原日志文件应该改名并保存
+
+		except:
+			msg = traceback.format_exc()
+			print msg
+			self.logger.warning(msg)
 
 
 # 将结果存入mongodb
